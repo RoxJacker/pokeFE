@@ -1,0 +1,260 @@
+/* ============================================================
+   PokePWA — Design System
+   ============================================================ */
+
+/* ── Google Fonts ─────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+
+/* ── CSS Custom Properties ────────────────────────────────── */
+:root {
+  /* Palette */
+  --bg-base: #ffcb05; /* Amarillo brillante de la referencia */
+  --bg-gradient: #ffcb05; 
+  --green-leaf: #7AC74C;
+  --purple-main: #3b4cca; /* Azul clásico de Pokémon para botones */
+  --purple-dark: #2a3a9a;
+  --purple-light: rgba(59, 76, 202, 0.2);
+  --lavender-soft: #ffde73; /* Fondo secundario amarillo claro */
+  --lavender-hover: #ffe79a;
+  --white: #ffffff;
+  --surface: rgba(255, 255, 255, 0.4);
+  --surface-border: rgba(255, 255, 255, 0.2);
+  --gray-100: rgba(0, 0, 0, 0.05);
+  --gray-200: rgba(0, 0, 0, 0.1);
+  --gray-300: rgba(0, 0, 0, 0.2);
+  --gray-500: #666666;
+  --gray-700: #333333;
+  --gray-900: #1a1a1a;
+  --danger: #ff4757;
+  --warning: #feca57;
+
+  /* Typography */
+  --font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-xs: 0.75rem;
+  --font-sm: 0.875rem;
+  --font-base: 1rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.5rem;
+  --font-2xl: 2rem;
+  --font-3xl: 2.5rem;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(93, 63, 211, 0.08);
+  --shadow-md: 0 4px 12px rgba(93, 63, 211, 0.1);
+  --shadow-lg: 0 8px 30px rgba(93, 63, 211, 0.15);
+  --shadow-card: 0 2px 8px rgba(93, 63, 211, 0.08);
+  --shadow-card-hover: 0 8px 25px rgba(93, 63, 211, 0.18);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  /* Layout */
+  --navbar-height: 64px;
+  --max-width: 1200px;
+}
+
+/* ── Reset & Base ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--gray-900);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--purple-main);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--purple-dark);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button {
+  font-family: var(--font-family);
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ── Layout utilities ─────────────────────────────────────── */
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  transition: all var(--transition-base);
+}
+
+.btn-primary {
+  background: var(--purple-main);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background: var(--purple-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--purple-main);
+  border: 2px solid var(--purple-main);
+}
+
+.btn-outline:hover {
+  background: var(--purple-main);
+  color: var(--white);
+}
+
+.btn-success {
+  background: var(--green-leaf);
+  color: var(--white);
+}
+
+.btn-success:hover {
+  background: #3db368;
+  transform: translateY(-1px);
+}
+
+/* ── Pokémon Type Colors ──────────────────────────────────── */
+.type-normal     { --type-color: #A8A77A; }
+.type-fire       { --type-color: #F08030; }
+.type-water      { --type-color: #6890F0; }
+.type-electric   { --type-color: #F8D030; }
+.type-grass      { --type-color: #92CD59; }
+.type-ice        { --type-color: #98D8D8; }
+.type-fighting   { --type-color: #C03028; }
+.type-poison     { --type-color: #B5609B; }
+.type-ground     { --type-color: #E0C068; }
+.type-flying     { --type-color: #A890F0; }
+.type-psychic    { --type-color: #F85888; }
+.type-bug        { --type-color: #A8B820; }
+.type-rock       { --type-color: #B8A038; }
+.type-ghost      { --type-color: #705898; }
+.type-dragon     { --type-color: #7038F8; }
+.type-dark       { --type-color: #705848; }
+.type-steel      { --type-color: #B8B8D0; }
+.type-fairy      { --type-color: #F0B6BC; }
+
+/* ── Animations ───────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes fillBar {
+  from { width: 0; }
+  to   { width: var(--fill); }
+}
+
+.fade-in-up {
+  animation: fadeInUp var(--transition-slow) ease forwards;
+}
+
+/* ── Scrollbar styling ────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--lavender-soft);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--purple-light);
+}

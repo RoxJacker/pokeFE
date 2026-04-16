@@ -2,13 +2,11 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
-import { initPushNotifications } from '../utils/notifications.js'
 import TypeBadge from '../components/TypeBadge.vue'
 
 const authStore = useAuthStore()
 const currentUser = authStore.user
 const router = useRouter()
-const pushEnabled = ref(false)
 const copied = ref(false)
 
 onMounted(async () => {
@@ -23,17 +21,7 @@ function copyCode() {
   }
 }
 
-async function togglePush() {
-  try {
-    const sub = await initPushNotifications()
-    if (sub) {
-      await authStore.updateProfile({ pushSubscription: sub.toJSON() })
-      pushEnabled.value = true
-    }
-  } catch (err) {
-    console.error('Error activando push:', err)
-  }
-}
+
 
 function handleLogout() {
   authStore.logout()
@@ -83,13 +71,7 @@ function handleLogout() {
           </div>
         </div>
 
-        <!-- Push Notifications -->
-        <div class="profile-section">
-          <h2>Notificaciones Push</h2>
-          <button class="btn" :class="pushEnabled ? 'btn-success' : 'btn-primary'" @click="togglePush">
-            {{ pushEnabled ? '🔔 Activadas' : 'Activar notificaciones' }}
-          </button>
-        </div>
+
 
         <!-- Logout -->
         <div class="profile-actions">

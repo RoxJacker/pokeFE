@@ -1,10 +1,11 @@
 <script setup>
 import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useAuthStore } from './stores/auth.js'
 import { useRouter } from 'vue-router'
 import NotificationBell from './components/NotificationBell.vue'
 import OfflineBanner from './components/OfflineBanner.vue'
+import { initPushNotifications } from './utils/notifications.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -34,9 +35,31 @@ function handleLogout() {
 
 function closeMobile() { mobileMenuOpen.value = false }
 
+async function setupPushIfNeeded() {
+  if (authStore.isLoggedIn) {
+    try {
+      const sub = await initPushNotifications()
+      if (sub && !authStore.user?.pushSubscription) {
+        await authStore.updateProfile({ pushSubscription: sub.toJSON() })
+      }
+    } catch (e) {
+      console.warn('Error setting up push config:', e)
+    }
+  }
+}
+
+watch(() => authStore.isLoggedIn, (newVal) => {
+  if (newVal) {
+    setupPushIfNeeded()
+  }
+})
+
 onMounted(() => {
   window.addEventListener('online', updateOnlineStatus)
   window.addEventListener('offline', updateOnlineStatus)
+  
+  // Try to setup push notifications on app startup if logged in
+  setupPushIfNeeded()
 })
 onUnmounted(() => {
   window.removeEventListener('online', updateOnlineStatus)

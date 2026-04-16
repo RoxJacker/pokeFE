@@ -1,7 +1,9 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/utils/api'
 
+const route = useRoute()
 const notifications = ref([])
 const showPanel = ref(false)
 const loading = ref(false)
@@ -12,8 +14,8 @@ async function fetchPendingItems() {
   loading.value = true
   try {
     const [friendsRes, battlesRes] = await Promise.all([
-      api.get('/api/friends'),
-      api.get('/api/battles')
+      api.get('/api/friends').catch(() => ({ data: { pending: [] } })),
+      api.get('/api/battles').catch(() => ({ data: { battles: [] } }))
     ])
     
     const newAlerts = []
@@ -26,7 +28,7 @@ async function fetchPendingItems() {
           id: f.id,
           type: 'invitacion-amistad',
           title: 'Solicitud de Amistad',
-          body: `${f.otherUser.username} quiere ser tu amigo.`,
+          body: `${f.otherUser?.username || 'Alguien'} quiere ser tu amigo.`,
           time: f.createdAt,
           itemData: f
         })
@@ -41,7 +43,7 @@ async function fetchPendingItems() {
           id: b.id,
           type: 'reto-batalla',
           title: '¡Reto de Batalla!',
-          body: `${b.challenger.username} te ha desafiado.`,
+          body: `${b.challenger?.username || 'Un entrenador'} te ha desafiado.`,
           time: b.createdAt,
           itemData: b
         })
@@ -89,7 +91,7 @@ async function declineBattle(id) {
 
 function handleSWMessage(event) {
   if (event.data?.type === 'PUSH_NOTIFICATION') {
-    // Re-fetch everything from backend to keep it perfectly synced instead of local mutation
+    // Re-fetch from backend to keep it perfectly synced
     fetchPendingItems()
   }
 }
@@ -113,9 +115,21 @@ function getIcon(type) {
 
 let pollInterval;
 
+// Re-fetch when navigating between pages
+watch(() => route.path, () => {
+  fetchPendingItems()
+})
+
 onMounted(() => {
   fetchPendingItems()
-  navigator.serviceWorker?.addEventListener('message', handleSWMessage)
+  // Listen for SW push messages
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.addEventListener('message', handleSWMessage)
+  }
+  // Also listen for when a SW takes control (first load)
+  navigator.serviceWorker?.ready.then(() => {
+    navigator.serviceWorker.addEventListener('message', handleSWMessage)
+  })
   // Poll every 30 seconds to catch misses
   pollInterval = setInterval(fetchPendingItems, 30000)
 })

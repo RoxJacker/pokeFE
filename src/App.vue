@@ -1,18 +1,19 @@
 <script setup>
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { currentUser, isLoggedIn, logout } from './utils/auth.js'
+import { useAuthStore } from './stores/auth.js'
 import { useRouter } from 'vue-router'
 import NotificationBell from './components/NotificationBell.vue'
 import OfflineBanner from './components/OfflineBanner.vue'
 
+const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const isOnline = ref(navigator.onLine)
 const mobileMenuOpen = ref(false)
 
-const loggedIn = computed(() => isLoggedIn())
-const user = computed(() => currentUser.value)
+const loggedIn = computed(() => authStore.isLoggedIn)
+const user = computed(() => authStore.user)
 const isFullPage = computed(() => route.meta.fullPage)
 
 function updateOnlineStatus() {
@@ -26,7 +27,7 @@ function updateOnlineStatus() {
 }
 
 function handleLogout() {
-  logout()
+  authStore.logout()
   mobileMenuOpen.value = false
   router.push('/login')
 }
@@ -86,6 +87,13 @@ onUnmounted(() => {
             </svg>
             <span>Equipo</span>
           </RouterLink>
+          <RouterLink to="/battles" class="nav-link">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+              <polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+            <span>Batallas</span>
+          </RouterLink>
           <RouterLink to="/about" class="nav-link">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>
@@ -131,6 +139,7 @@ onUnmounted(() => {
           <RouterLink to="/friends" class="mobile-link" @click="closeMobile">👥 Amigos</RouterLink>
           <RouterLink to="/favorites" class="mobile-link" @click="closeMobile">❤️ Favoritos</RouterLink>
           <RouterLink to="/team" class="mobile-link" @click="closeMobile">⭐ Equipo</RouterLink>
+          <RouterLink to="/battles" class="mobile-link" @click="closeMobile">⚔️ Batallas</RouterLink>
           <RouterLink to="/profile" class="mobile-link" @click="closeMobile">👤 Perfil</RouterLink>
           <RouterLink to="/about" class="mobile-link" @click="closeMobile">ℹ️ Acerca de</RouterLink>
         </nav>
@@ -166,6 +175,10 @@ onUnmounted(() => {
       <RouterLink to="/team" class="bottom-link" :class="{ active: route.path === '/team' }">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         <span>Equipo</span>
+      </RouterLink>
+      <RouterLink to="/battles" class="bottom-link" :class="{ active: route.path === '/battles' }">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>Batallas</span>
       </RouterLink>
       <RouterLink to="/profile" class="bottom-link" :class="{ active: route.path === '/profile' }">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>

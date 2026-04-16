@@ -1,11 +1,14 @@
 /**
  * db.js — IndexedDB wrapper para PokePWA
- * Almacena peticiones HTTP fallidas para Background Sync (Fase 3)
+ * Stores: failed-requests (background sync), pokemon-cache, favorites-cache, team-cache
  */
 
 const DB_NAME = 'poke-sync-db'
-const DB_VERSION = 1
-const STORE_NAME = 'failed-requests'
+const DB_VERSION = 2
+const STORE_REQUESTS = 'failed-requests'
+const STORE_POKEMON = 'pokemon-cache'
+const STORE_FAVORITES = 'favorites-cache'
+const STORE_TEAM = 'team-cache'
 
 /**
  * Abre (o crea) la base de datos IndexedDB.
@@ -17,34 +20,32 @@ export function openDB() {
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true })
-        console.log('[IDB] Object store "failed-requests" creado.')
+      if (!db.objectStoreNames.contains(STORE_REQUESTS)) {
+        db.createObjectStore(STORE_REQUESTS, { keyPath: 'id', autoIncrement: true })
+      }
+      if (!db.objectStoreNames.contains(STORE_POKEMON)) {
+        db.createObjectStore(STORE_POKEMON, { keyPath: 'id' })
+      }
+      if (!db.objectStoreNames.contains(STORE_FAVORITES)) {
+        db.createObjectStore(STORE_FAVORITES, { keyPath: 'pokemonId' })
+      }
+      if (!db.objectStoreNames.contains(STORE_TEAM)) {
+        db.createObjectStore(STORE_TEAM, { keyPath: 'id' })
       }
     }
 
-    request.onsuccess = (event) => {
-      console.log('[IDB] Base de datos abierta correctamente.')
-      resolve(event.target.result)
-    }
-
-    request.onerror = (event) => {
-      console.error('[IDB] Error al abrir la base de datos:', event.target.error)
-      reject(event.target.error)
-    }
+    request.onsuccess = (event) => resolve(event.target.result)
+    request.onerror = (event) => reject(event.target.error)
   })
 }
 
-/**
- * Guarda una petición fallida en IndexedDB.
- * @param {{ url: string, method: string, headers?: object, body?: any }} payload
- * @returns {Promise<number>} ID del registro insertado
- */
+// ── Failed Requests (Background Sync) ───────────────────
+
 export async function saveRequest(payload) {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
+    const tx = db.transaction(STORE_REQUESTS, 'readwrite')
+    const store = tx.objectStore(STORE_REQUESTS)
     const record = {
       url: payload.url,
       method: payload.method || 'POST',
@@ -52,51 +53,111 @@ export async function saveRequest(payload) {
       body: payload.body || null,
       timestamp: new Date().toISOString(),
     }
-    const request = store.add(record)
-    request.onsuccess = (e) => {
-      console.log('[IDB] Petición guardada con id:', e.target.result)
-      resolve(e.target.result)
-    }
-    request.onerror = (e) => {
-      console.error('[IDB] Error al guardar la petición:', e.target.error)
-      reject(e.target.error)
-    }
+    const req = store.add(record)
+    req.onsuccess = (e) => resolve(e.target.result)
+    req.onerror = (e) => reject(e.target.error)
   })
 }
 
-/**
- * Obtiene todas las peticiones pendientes de IndexedDB.
- * @returns {Promise<Array>}
- */
 export async function getAllRequests() {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly')
-    const store = tx.objectStore(STORE_NAME)
-    const request = store.getAll()
-    request.onsuccess = (e) => resolve(e.target.result)
-    request.onerror = (e) => reject(e.target.error)
+    const tx = db.transaction(STORE_REQUESTS, 'readonly')
+    const store = tx.objectStore(STORE_REQUESTS)
+    const req = store.getAll()
+    req.onsuccess = (e) => resolve(e.target.result)
+    req.onerror = (e) => reject(e.target.error)
   })
 }
 
-/**
- * Elimina un registro por su ID tras sincronización exitosa.
- * @param {number} id
- * @returns {Promise<void>}
- */
 export async function deleteRequest(id) {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
-    const request = store.delete(id)
-    request.onsuccess = () => {
-      console.log('[IDB] Registro eliminado, id:', id)
-      resolve()
-    }
-    request.onerror = (e) => {
-      console.error('[IDB] Error al eliminar el registro:', e.target.error)
-      reject(e.target.error)
-    }
+    const tx = db.transaction(STORE_REQUESTS, 'readwrite')
+    const store = tx.objectStore(STORE_REQUESTS)
+    const req = store.delete(id)
+    req.onsuccess = () => resolve()
+    req.onerror = (e) => reject(e.target.error)
   })
 }
+
+// ── Pokemon Cache ───────────────────────────────────────
+
+export async function cachePokemonList(pokemonArray) {
+  const db = await openDB()
+  const tx = db.transaction(STORE_POKEMON, 'readwrite')
+  const store = tx.objectStore(STORE_POKEMON)
+  for (const p of pokemonArray) {
+    store.put(p)
+  }
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve()
+    tx.onerror = (e) => reject(e.target.error)
+  })
+}
+
+export async function getCachedPokemonList() {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_POKEMON, 'readonly')
+    const store = tx.objectStore(STORE_POKEMON)
+    const req = store.getAll()
+    req.onsuccess = (e) => resolve(e.target.result)
+    req.onerror = (e) => reject(e.target.error)
+  })
+}
+
+// ── Favorites Cache ─────────────────────────────────────
+
+export async function cacheFavorites(favoritesArray) {
+  const db = await openDB()
+  const tx = db.transaction(STORE_FAVORITES, 'readwrite')
+  const store = tx.objectStore(STORE_FAVORITES)
+  store.clear()
+  for (const f of favoritesArray) {
+    store.put(f)
+  }
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve()
+    tx.onerror = (e) => reject(e.target.error)
+  })
+}
+
+export async function getCachedFavorites() {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_FAVORITES, 'readonly')
+    const store = tx.objectStore(STORE_FAVORITES)
+    const req = store.getAll()
+    req.onsuccess = (e) => resolve(e.target.result)
+    req.onerror = (e) => reject(e.target.error)
+  })
+}
+
+// ── Team Cache ──────────────────────────────────────────
+
+export async function cacheTeam(teamArray) {
+  const db = await openDB()
+  const tx = db.transaction(STORE_TEAM, 'readwrite')
+  const store = tx.objectStore(STORE_TEAM)
+  store.clear()
+  for (const p of teamArray) {
+    store.put(p)
+  }
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve()
+    tx.onerror = (e) => reject(e.target.error)
+  })
+}
+
+export async function getCachedTeam() {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_TEAM, 'readonly')
+    const store = tx.objectStore(STORE_TEAM)
+    const req = store.getAll()
+    req.onsuccess = (e) => resolve(e.target.result)
+    req.onerror = (e) => reject(e.target.error)
+  })
+}
+

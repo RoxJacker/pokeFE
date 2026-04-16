@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { register } from '../utils/auth.js'
+import { useAuthStore } from '../stores/auth.js'
 import { initPushNotifications } from '../utils/notifications.js'
 
+const authStore = useAuthStore()
 const router = useRouter()
 const username = ref('')
 const email = ref('')
@@ -59,7 +60,7 @@ async function handleRegister() {
   error.value = ''
   loading.value = true
   try {
-    const data = await register(username.value.trim(), email.value.trim(), password.value)
+    const data = await authStore.register(username.value.trim(), email.value.trim(), password.value)
     friendCode.value = data.user.friendCode
     success.value = true
     try { await initPushNotifications() } catch {}

@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
-import { login } from '../utils/auth.js'
+import { useAuthStore } from '../stores/auth.js'
 import { initPushNotifications } from '../utils/notifications.js'
 
+const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const email = ref('')
@@ -20,7 +21,7 @@ async function handleLogin() {
   error.value = ''
   loading.value = true
   try {
-    await login(email.value.trim(), password.value)
+    await authStore.login(email.value.trim(), password.value)
     try { await initPushNotifications() } catch {}
     const redirect = route.query.redirect || '/'
     router.push(redirect)

@@ -1,33 +1,17 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
-import api from '../utils/api.js'
+import { useTeamStore } from '../stores/team.js'
 import TypeBadge from '../components/TypeBadge.vue'
 
-const team = ref([])
+const teamStore = useTeamStore()
 const searchQuery = ref('')
 const searchResults = ref([])
 const searching = ref(false)
-const loading = ref(true)
 const saving = ref(false)
 const saveMsg = ref('')
 
 let debounceTimer = null
-
-const MAX_TEAM = 6
-const isFull = computed(() => team.value.length >= MAX_TEAM)
-
-// Fetch current team from backend
-async function loadTeam() {
-  try {
-    const { data } = await api.get('/api/teams/me')
-    team.value = data.team || []
-  } catch (err) {
-    console.error('Error cargando equipo:', err)
-  } finally {
-    loading.value = false
-  }
-}
 
 // Search PokeAPI
 function handleSearch(e) {
@@ -76,23 +60,17 @@ function formatPokemon(p) {
 }
 
 function addToTeam(pokemon) {
-  if (isFull.value) return
-  if (team.value.find((p) => p.id === pokemon.id)) return
-
-  team.value.push(pokemon)
-  searchQuery.value = ''
-  searchResults.value = []
-}
-
-function removeFromTeam(pokemonId) {
-  team.value = team.value.filter((p) => p.id !== pokemonId)
+  if (teamStore.addToTeam(pokemon)) {
+    searchQuery.value = ''
+    searchResults.value = []
+  }
 }
 
 async function saveTeam() {
   saving.value = true
   saveMsg.value = ''
   try {
-    await api.put('/api/teams/me', { team: team.value })
+    await teamStore.saveTeam()
     saveMsg.value = '¡Equipo guardado! ✅'
     setTimeout(() => (saveMsg.value = ''), 3000)
   } catch (err) {
@@ -102,7 +80,7 @@ async function saveTeam() {
   }
 }
 
-onMounted(loadTeam)
+onMounted(() => teamStore.loadTeam())
 </script>
 
 <template>
@@ -114,10 +92,10 @@ onMounted(loadTeam)
       <!-- Current Team -->
       <div class="team-card">
         <div class="team-header">
-          <h2>Mi equipo <span class="team-count">{{ team.length }}/{{ MAX_TEAM }}</span></h2>
+          <h2>Mi equipo <span class="team-count">{{ teamStore.team.length }}/{{ teamStore.MAX_TEAM }}</span></h2>
           <button
             class="btn btn-primary"
-            :disabled="saving || !team.length"
+            :disabled="saving || !teamStore.team.length"
             @click="saveTeam"
           >
             {{ saving ? 'Guardando...' : '💾 Guardar equipo' }}
@@ -126,15 +104,15 @@ onMounted(loadTeam)
 
         <div v-if="saveMsg" class="save-msg">{{ saveMsg }}</div>
 
-        <div v-if="loading" class="loading-state">Cargando equipo...</div>
+        <div v-if="teamStore.loading" class="loading-state">Cargando equipo...</div>
 
-        <div v-else-if="!team.length" class="empty-team">
+        <div v-else-if="!teamStore.team.length" class="empty-team">
           <p>Tu equipo está vacío. ¡Busca Pokémon abajo para agregarlo!</p>
         </div>
 
         <div v-else class="team-grid">
-          <div v-for="p in team" :key="p.id" class="team-slot">
-            <button class="remove-btn" @click="removeFromTeam(p.id)" title="Quitar del equipo">✕</button>
+          <div v-for="p in teamStore.team" :key="p.id" class="team-slot">
+            <button class="remove-btn" @click="teamStore.removeFromTeam(p.id)" title="Quitar del equipo">✕</button>
             <img :src="p.sprite" :alt="p.name" class="slot-sprite" />
             <span class="slot-name">{{ p.name }}</span>
             <div class="slot-types">
@@ -143,7 +121,7 @@ onMounted(loadTeam)
           </div>
 
           <!-- Empty slots -->
-          <div v-for="n in (MAX_TEAM - team.length)" :key="'empty-' + n" class="team-slot empty">
+          <div v-for="n in (teamStore.MAX_TEAM - teamStore.team.length)" :key="'empty-' + n" class="team-slot empty">
             <div class="empty-icon">+</div>
             <span class="slot-name">Vacío</span>
           </div>
@@ -151,7 +129,7 @@ onMounted(loadTeam)
       </div>
 
       <!-- Search -->
-      <div class="search-card" v-if="!isFull">
+      <div class="search-card" v-if="!teamStore.isFull">
         <h2>Buscar Pokémon</h2>
         <div class="search-input-wrapper">
           <input
@@ -169,7 +147,7 @@ onMounted(loadTeam)
             v-for="p in searchResults"
             :key="p.id"
             class="result-item"
-            :class="{ disabled: team.find(t => t.id === p.id) }"
+            :class="{ disabled: teamStore.team.find(t => t.id === p.id) }"
             @click="addToTeam(p)"
           >
             <img :src="p.sprite" :alt="p.name" class="result-sprite" />
@@ -179,7 +157,7 @@ onMounted(loadTeam)
                 <TypeBadge v-for="t in p.types" :key="t" :type="t" />
               </div>
             </div>
-            <span class="add-label" v-if="!team.find(t => t.id === p.id)">+ Agregar</span>
+            <span class="add-label" v-if="!teamStore.team.find(t => t.id === p.id)">+ Agregar</span>
             <span class="added-label" v-else>✓ En equipo</span>
           </div>
         </div>

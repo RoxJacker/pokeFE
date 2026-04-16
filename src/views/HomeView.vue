@@ -4,6 +4,7 @@ import axios from 'axios'
 import PokemonCard from '../components/PokemonCard.vue'
 import SearchBar from '../components/SearchBar.vue'
 import LoadingSkeleton from '../components/LoadingSkeleton.vue'
+import { cachePokemonList, getCachedPokemonList } from '../utils/db.js'
 
 const allPokemon = ref([])
 const searchQuery = ref('')
@@ -103,9 +104,23 @@ async function fetchPokemonPage() {
       urlsToFetch.map((url) => axios.get(url).then((r) => r.data).catch(() => null)),
     )
 
-    allPokemon.value.push(...details.filter(Boolean))
+    const fetched = details.filter(Boolean)
+    allPokemon.value.push(...fetched)
+
+    // Cache fetched pokemon in IndexedDB
+    try { await cachePokemonList(fetched) } catch {}
   } catch (err) {
     console.error('[Home] Error cargando Pokémon:', err)
+    // Offline fallback: load from IndexedDB cache
+    if (allPokemon.value.length === 0) {
+      try {
+        const cached = await getCachedPokemonList()
+        if (cached.length) {
+          allPokemon.value = cached
+          totalCount.value = cached.length
+        }
+      } catch {}
+    }
   }
 }
 
@@ -174,6 +189,10 @@ onMounted(async () => {
               <option value="">Cualquier Tipo 2</option>
               <option v-for="t in allTypes" :key="t.name" :value="t.name">{{ t.name }}</option>
               </select>
+            <select class="filter-select" v-model="regionFilter" @change="applyFilters" :disabled="searchQuery">
+              <option value="">Cualquier Región</option>
+              <option v-for="r in allRegions" :key="r.name" :value="r.name">{{ r.name }}</option>
+            </select>
             </div>
           </div>
         </div>

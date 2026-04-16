@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { currentUser, updateFavoriteCharacteristics } from '../utils/auth.js'
+import { useAuthStore } from '../stores/auth.js'
 import axios from 'axios'
 import LoadingSkeleton from '../components/LoadingSkeleton.vue'
 
+const authStore = useAuthStore()
 const favoriteDetails = ref([])
 const loading = ref(true)
 
@@ -13,13 +14,13 @@ const tempNotes = ref('')
 const loadingSave = ref(false)
 
 async function loadFavorites() {
-  if (!currentUser.value || !currentUser.value.favorites) {
+  if (!authStore.user || !authStore.user.favorites) {
     loading.value = false
     return
   }
   
   try {
-    const promises = currentUser.value.favorites.map(fav =>
+    const promises = authStore.user.favorites.map(fav =>
       axios.get(`https://pokeapi.co/api/v2/pokemon/${fav.pokemonId}`).then(res => {
         return { ...res.data, favData: fav }
       })
@@ -58,7 +59,7 @@ function closeEditModal() {
 async function saveEdit() {
   if (!editingFav.value) return
   loadingSave.value = true
-  await updateFavoriteCharacteristics(editingFav.value.pokemonId, {
+  await authStore.updateFavoriteCharacteristics(editingFav.value.pokemonId, {
     nickname: tempNickname.value,
     notes: tempNotes.value
   })

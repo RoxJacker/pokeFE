@@ -1,21 +1,23 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { currentUser, fetchProfile, logout, updateProfile } from '../utils/auth.js'
+import { useAuthStore } from '../stores/auth.js'
 import { initPushNotifications } from '../utils/notifications.js'
 import TypeBadge from '../components/TypeBadge.vue'
 
+const authStore = useAuthStore()
+const currentUser = authStore.user
 const router = useRouter()
 const pushEnabled = ref(false)
 const copied = ref(false)
 
 onMounted(async () => {
-  await fetchProfile()
+  await authStore.fetchProfile()
 })
 
 function copyCode() {
-  if (currentUser.value?.friendCode) {
-    navigator.clipboard.writeText(currentUser.value.friendCode)
+  if (authStore.user?.friendCode) {
+    navigator.clipboard.writeText(authStore.user.friendCode)
     copied.value = true
     setTimeout(() => (copied.value = false), 2000)
   }
@@ -25,7 +27,7 @@ async function togglePush() {
   try {
     const sub = await initPushNotifications()
     if (sub) {
-      await updateProfile({ pushSubscription: sub.toJSON() })
+      await authStore.updateProfile({ pushSubscription: sub.toJSON() })
       pushEnabled.value = true
     }
   } catch (err) {
@@ -34,7 +36,7 @@ async function togglePush() {
 }
 
 function handleLogout() {
-  logout()
+  authStore.logout()
   router.push('/login')
 }
 </script>

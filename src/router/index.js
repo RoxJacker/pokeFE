@@ -52,6 +52,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/battles',
+      name: 'battles',
+      component: () => import('../views/BattlesListView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/battle/:id',
       name: 'battle',
       component: () => import('../views/BattleView.vue'),

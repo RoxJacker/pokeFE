@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import TypeBadge from './TypeBadge.vue'
-import { currentUser, toggleFavorite } from '../utils/auth.js'
+import { useAuthStore } from '../stores/auth.js'
 
 const props = defineProps({
   pokemon: {
@@ -11,6 +11,7 @@ const props = defineProps({
   },
 })
 
+const authStore = useAuthStore()
 const router = useRouter()
 const padId = (id) => String(id).padStart(3, '0')
 
@@ -23,18 +24,18 @@ const spriteUrl = (pokemon) => {
 }
 
 const isFavorite = computed(() => {
-  if (!currentUser.value || !currentUser.value.favorites) return false
-  return currentUser.value.favorites.some(f => f.pokemonId === props.pokemon.id)
+  if (!authStore.user || !authStore.user.favorites) return false
+  return authStore.user.favorites.some(f => f.pokemonId === props.pokemon.id)
 })
 
 async function onToggleFavorite(e) {
   e.preventDefault()
-  if (!currentUser.value) {
+  if (!authStore.user) {
     alert('Debes iniciar sesión para agregar a favoritos.')
     router.push('/login')
     return
   }
-  await toggleFavorite(props.pokemon.id)
+  await authStore.toggleFavorite(props.pokemon.id)
 }
 </script>
 

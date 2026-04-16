@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../utils/api.js'
+import { connectSocket, getSocket } from '../utils/socket.js'
 import TeamSelectModal from '../components/TeamSelectModal.vue'
 
 const router = useRouter()
@@ -143,6 +144,24 @@ function navigateToBattle(battleId) {
 onMounted(() => {
   fetchFriends()
   fetchBattles()
+
+  // Connect socket and listen for real-time battle updates
+  connectSocket()
+  const socket = getSocket()
+  if (socket) {
+    socket.on('battle-accepted', () => fetchBattles())
+    socket.on('battle-started', () => fetchBattles())
+    socket.on('battle-update', () => fetchBattles())
+  }
+})
+
+onUnmounted(() => {
+  const socket = getSocket()
+  if (socket) {
+    socket.off('battle-accepted')
+    socket.off('battle-started')
+    socket.off('battle-update')
+  }
 })
 </script>
 

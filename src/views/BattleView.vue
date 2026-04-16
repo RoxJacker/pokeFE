@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../utils/api.js'
+import { getSocket } from '../utils/socket.js'
 import TypeBadge from '../components/TypeBadge.vue'
 
 const route = useRoute()
@@ -20,10 +21,10 @@ const showEvents = ref(false)
 const animatingDamage = ref(null) // 'my' or 'opponent'
 const showSwitchPanel = ref(false)
 const switchRequired = ref(false)
-const pollingInterval = ref(null)
+let socket = null
 
 // Current user
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const currentUser = JSON.parse(localStorage.getItem('pokepwa_user') || '{}')
 
 // Computed
 const myActive = computed(() => {
@@ -87,39 +88,50 @@ async function submitMove(moveIndex) {
   selectedMove.value = moveIndex
   waitingForOpponent.value = true
 
-  try {
-    const { data } = await api.post(`/api/battles/${battleId}/turn`, { moveIndex })
-    if (data.events) {
-      await playEvents(data.events)
-    }
-    if (data.state) {
-      state.value = data.state
-    }
-    battleStatus.value = data.battleStatus || battleStatus.value
-    waitingForOpponent.value = data.waiting || false
+  if (socket?.connected) {
+    socket.emit('submit-move', { battleId, moveIndex })
+  } else {
+    // Fallback REST if socket disconnected
+    try {
+      const { data } = await api.post(`/api/battles/${battleId}/turn`, { moveIndex })
+      if (data.events) {
+        await playEvents(data.events)
+      }
+      if (data.state) {
+        state.value = data.state
+      }
+      battleStatus.value = data.battleStatus || battleStatus.value
+      waitingForOpponent.value = data.waiting || false
 
-    // Check for switch requirement
-    if (data.events?.some(e => e.type === 'switch_required' && e.userId === currentUser.id)) {
-      switchRequired.value = true
-      showSwitchPanel.value = true
+      if (data.events?.some(e => e.type === 'switch_required' && e.userId === currentUser.id)) {
+        switchRequired.value = true
+        showSwitchPanel.value = true
+      }
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Error al enviar movimiento.'
+      waitingForOpponent.value = false
     }
-  } catch (err) {
-    error.value = err.response?.data?.error || 'Error al enviar movimiento.'
-    waitingForOpponent.value = false
   }
   selectedMove.value = null
 }
 
 async function switchPokemon(index) {
-  try {
-    const { data } = await api.post(`/api/battles/${battleId}/switch`, { pokemonIndex: index })
-    if (data.state) {
-      state.value = data.state
-    }
+  if (socket?.connected) {
+    socket.emit('switch-pokemon', { battleId, pokemonIndex: index })
     showSwitchPanel.value = false
     switchRequired.value = false
-  } catch (err) {
-    error.value = err.response?.data?.error || 'Error al cambiar Pokémon.'
+  } else {
+    // Fallback REST
+    try {
+      const { data } = await api.post(`/api/battles/${battleId}/switch`, { pokemonIndex: index })
+      if (data.state) {
+        state.value = data.state
+      }
+      showSwitchPanel.value = false
+      switchRequired.value = false
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Error al cambiar Pokémon.'
+    }
   }
 }
 
@@ -149,40 +161,87 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-// Poll for opponent's move
-function startPolling() {
-  pollingInterval.value = setInterval(async () => {
-    if (!waitingForOpponent.value && !switchRequired.value) return
-    if (isFinished.value) {
-      stopPolling()
-      return
+// ── Socket.io integration ────────────────────────────────
+function setupSocket() {
+  socket = getSocket()
+  if (!socket) {
+    console.warn('[Battle] No socket available — using REST fallback.')
+    return
+  }
+
+  // Join the battle room
+  socket.emit('join-battle', { battleId })
+
+  // ── Listeners ──────────────────────────────────────────
+
+  // Initial state when joining
+  socket.on('battle-state', (data) => {
+    battleStatus.value = data.status
+    winnerId.value = data.winnerId
+    if (data.state) {
+      state.value = data.state
+      waitingForOpponent.value = data.state.hasPendingMove
     }
+    loading.value = false
+  })
 
-    try {
-      const { data } = await api.get(`/api/battles/${battleId}/state`)
-      if (data.state && !data.state.hasPendingMove && waitingForOpponent.value) {
-        // Turn was resolved by another poll or player
-        state.value = data.state
-        battleStatus.value = data.status
-        winnerId.value = data.winnerId
-        waitingForOpponent.value = false
+  // Battle started (both teams ready)
+  socket.on('battle-started', (data) => {
+    const myState = data.state?.[currentUser.id]
+    if (myState) {
+      state.value = myState
+      battleStatus.value = 'active'
+    }
+  })
 
-        // Check for new events
-        if (data.state.log?.length > 0) {
-          const lastTurn = data.state.log[data.state.log.length - 1]
-          if (lastTurn.events) {
-            await playEvents(lastTurn.events)
-          }
-        }
-      }
-    } catch {}
-  }, 3000)
+  // Our move was registered, waiting for opponent
+  socket.on('move-registered', () => {
+    waitingForOpponent.value = true
+  })
+
+  // Opponent submitted their move (UI indicator)
+  socket.on('opponent-move-pending', () => {
+    // Optional: could show an indicator
+  })
+
+  // Turn resolved — both moves executed
+  socket.on('turn-resolved', async (data) => {
+    const myState = data.state?.[currentUser.id]
+    if (data.events) {
+      await playEvents(data.events)
+    }
+    if (myState) {
+      state.value = myState
+    }
+    battleStatus.value = data.battleStatus || battleStatus.value
+    winnerId.value = data.winnerId || null
+    waitingForOpponent.value = false
+
+    // Check if we need to switch
+    if (data.events?.some(e => e.type === 'switch_required' && e.userId === currentUser.id)) {
+      switchRequired.value = true
+      showSwitchPanel.value = true
+    }
+  })
+
+  // Pokémon switched
+  socket.on('pokemon-switched', (data) => {
+    const myState = data.state?.[currentUser.id]
+    if (myState) {
+      state.value = myState
+    }
+  })
 }
 
-function stopPolling() {
-  if (pollingInterval.value) {
-    clearInterval(pollingInterval.value)
-    pollingInterval.value = null
+function cleanupSocket() {
+  if (socket) {
+    socket.emit('leave-battle', { battleId })
+    socket.off('battle-state')
+    socket.off('battle-started')
+    socket.off('move-registered')
+    socket.off('opponent-move-pending')
+    socket.off('turn-resolved')
+    socket.off('pokemon-switched')
   }
 }
 
@@ -203,11 +262,11 @@ function goBack() {
 
 onMounted(() => {
   fetchState()
-  startPolling()
+  setupSocket()
 })
 
 onUnmounted(() => {
-  stopPolling()
+  cleanupSocket()
 })
 </script>
 

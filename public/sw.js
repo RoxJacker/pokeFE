@@ -3,8 +3,8 @@
 // Fases: 1 (App Shell + Cache), 3 (Background Sync), 4 (Push)
 // ============================================================
 
-const APP_SHELL_CACHE = 'app-shell-v1'
-const DYNAMIC_CACHE = 'dynamic-v1'
+const APP_SHELL_CACHE = 'app-shell-v2'
+const DYNAMIC_CACHE = 'dynamic-v2'
 const KNOWN_CACHES = [APP_SHELL_CACHE, DYNAMIC_CACHE]
 
 // Recursos del App Shell que se pre-cachean en la instalación

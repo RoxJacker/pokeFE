@@ -260,6 +260,12 @@ function goBack() {
   router.push('/friends')
 }
 
+function abandonBattle() {
+  if (confirm('¿Estás seguro de que deseas salir de la batalla? Podrás retomarla más tarde desde la pestaña de Amigos.')) {
+    router.push('/friends')
+  }
+}
+
 onMounted(() => {
   fetchState()
   setupSocket()
@@ -391,8 +397,11 @@ onUnmounted(() => {
         <!-- Switch button -->
         <div class="action-buttons">
           <button class="btn btn-secondary switch-btn" @click="showSwitchPanel = !showSwitchPanel"
-            :disabled="waitingForOpponent">
+            :disabled="waitingForOpponent || showSwitchPanel">
             🔄 Cambiar Pokémon
+          </button>
+          <button class="btn btn-danger leave-btn" @click="abandonBattle">
+            🚪 Salir
           </button>
         </div>
       </div>

@@ -69,20 +69,51 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function toggleFavorite(pokemonId) {
-    const { data } = await api.post(`/api/users/me/favorites/${pokemonId}`)
-    user.value.favorites = data.favorites
+    // Optimistic local update FIRST
+    const existing = user.value.favorites || []
+    const idx = existing.findIndex(f => f.pokemonId === pokemonId)
+    if (idx !== -1) {
+      user.value.favorites.splice(idx, 1)
+    } else {
+      user.value.favorites.push({ pokemonId, nickname: '', notes: '' })
+    }
     localStorage.setItem('pokepwa_user', JSON.stringify(user.value))
-    return data.favorites
+
+    try {
+      const { data } = await api.post(`/api/users/me/favorites/${pokemonId}`)
+      // If we got the real server response, use it as source of truth
+      if (data.favorites) {
+        user.value.favorites = data.favorites
+        localStorage.setItem('pokepwa_user', JSON.stringify(user.value))
+      }
+      // If data.offline === true (SW queued it), keep the optimistic state
+      return user.value.favorites
+    } catch {
+      // Network error not caught by SW — keep the optimistic state
+      return user.value.favorites
+    }
   }
 
   async function updateFavoriteCharacteristics(pokemonId, updates) {
-    const { data } = await api.put(`/api/users/me/favorites/${pokemonId}`, updates)
-    const idx = user.value.favorites.findIndex(f => f.pokemonId === pokemonId)
-    if (idx !== -1) {
-      user.value.favorites[idx] = data.favorite
-      localStorage.setItem('pokepwa_user', JSON.stringify(user.value))
+    try {
+      const { data } = await api.put(`/api/users/me/favorites/${pokemonId}`, updates)
+      if (data.favorite) {
+        const idx = user.value.favorites.findIndex(f => f.pokemonId === pokemonId)
+        if (idx !== -1) {
+          user.value.favorites[idx] = data.favorite
+          localStorage.setItem('pokepwa_user', JSON.stringify(user.value))
+        }
+        return data.favorite
+      }
+    } catch {
+      // Optimistic: update locally even if offline
+      const idx = user.value.favorites.findIndex(f => f.pokemonId === pokemonId)
+      if (idx !== -1) {
+        Object.assign(user.value.favorites[idx], updates)
+        localStorage.setItem('pokepwa_user', JSON.stringify(user.value))
+      }
     }
-    return data.favorite
+    return updates
   }
 
   return {

@@ -24,6 +24,12 @@ function updateOnlineStatus() {
       if ('sync' in sw) sw.sync.register('sync-pokemon').catch(() => {})
       if (sw.active) sw.active.postMessage('FORCE_SYNC')
     })
+    // After SW syncs queued requests, re-fetch profile so UI reflects server state
+    if (authStore.isLoggedIn) {
+      setTimeout(() => {
+        authStore.fetchProfile()
+      }, 2000)
+    }
   }
 }
 

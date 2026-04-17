@@ -202,11 +202,20 @@ async function syncFailedRequests() {
 // ---- Helpers IndexedDB (dentro del SW) ----
 function openSyncDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('poke-sync-db', 1)
+    const request = indexedDB.open('poke-sync-db', 2)
     request.onupgradeneeded = (e) => {
       const db = e.target.result
       if (!db.objectStoreNames.contains('failed-requests')) {
         db.createObjectStore('failed-requests', { keyPath: 'id', autoIncrement: true })
+      }
+      if (!db.objectStoreNames.contains('pokemon-cache')) {
+        db.createObjectStore('pokemon-cache', { keyPath: 'id' })
+      }
+      if (!db.objectStoreNames.contains('favorites-cache')) {
+        db.createObjectStore('favorites-cache', { keyPath: 'pokemonId' })
+      }
+      if (!db.objectStoreNames.contains('team-cache')) {
+        db.createObjectStore('team-cache', { keyPath: 'id' })
       }
     }
     request.onsuccess = (e) => resolve(e.target.result)

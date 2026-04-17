@@ -260,6 +260,10 @@ function goBack() {
   router.push('/friends')
 }
 
+function goHome() {
+  router.push('/')
+}
+
 function abandonBattle() {
   if (confirm('¿Estás seguro de que deseas salir de la batalla? Podrás retomarla más tarde desde la pestaña de Amigos.')) {
     router.push('/friends')
@@ -446,7 +450,7 @@ onUnmounted(() => {
               <span class="stat-value">{{ state?.turn - 1 }}</span>
             </div>
           </div>
-          <button class="btn btn-primary" @click="goBack">Volver a Amigos</button>
+          <button class="btn btn-primary" @click="goHome">🏠 Regresar al inicio</button>
         </div>
       </div>
     </div>

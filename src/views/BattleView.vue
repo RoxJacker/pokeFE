@@ -321,8 +321,8 @@ onUnmounted(() => {
 
       <!-- Player Side (bottom) -->
       <div class="player-side">
-        <div class="pokemon-sprite player-sprite" :class="{ 'shake-animation': animatingDamage === 'my' }">
-          <img :src="myActive?.sprite" :alt="myActive?.name" />
+        <div class="pokemon-sprite" :class="{ 'player-sprite-fallback': !myActive?.sprites?.back_default, 'shake-animation': animatingDamage === 'my' }">
+          <img :src="myActive?.sprites?.back_default || myActive?.sprite" :alt="myActive?.name" />
         </div>
         <div class="pokemon-info player-info">
           <div class="pokemon-name-row">
@@ -530,27 +530,34 @@ onUnmounted(() => {
 }
 
 .shake-animation {
-  animation: shake 0.4s ease-in-out;
+  animation: takeDamage 0.5s ease-in-out;
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-8px); }
-  40% { transform: translateX(8px); }
-  60% { transform: translateX(-6px); }
-  80% { transform: translateX(6px); }
+@keyframes takeDamage {
+  0%, 100% { transform: translateX(0); filter: brightness(1) sepia(0) hue-rotate(0) saturate(1); }
+  20% { transform: translateX(-12px) scale(0.95); filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(5); }
+  40% { transform: translateX(12px) scale(0.95); filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(5); }
+  60% { transform: translateX(-10px) scale(0.95); filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(5); }
+  80% { transform: translateX(10px) scale(0.95); filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(5); }
 }
 
 .opponent-sprite.shake-animation {
-  animation: shakeFlip 0.4s ease-in-out;
+  animation: takeDamageFlip 0.5s ease-in-out;
 }
 
-@keyframes shakeFlip {
-  0%, 100% { transform: scaleX(-1) translateX(0); }
-  20% { transform: scaleX(-1) translateX(-8px); }
-  40% { transform: scaleX(-1) translateX(8px); }
-  60% { transform: scaleX(-1) translateX(-6px); }
-  80% { transform: scaleX(-1) translateX(6px); }
+@keyframes takeDamageFlip {
+  0%, 100% { transform: scaleX(-1) translateX(0); filter: brightness(1) sepia(0) hue-rotate(0) saturate(1); }
+  20% { transform: scaleX(-1) translateX(-12px) scale(0.95); filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(5); }
+  40% { transform: scaleX(-1) translateX(12px) scale(0.95); filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(5); }
+  60% { transform: scaleX(-1) translateX(-10px) scale(0.95); filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(5); }
+  80% { transform: scaleX(-1) translateX(10px) scale(0.95); filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(5); }
+}
+
+.player-sprite-fallback {
+  transform: scaleX(-1);
+}
+.player-sprite-fallback.shake-animation {
+  animation: takeDamageFlip 0.5s ease-in-out;
 }
 
 /* VS Divider */

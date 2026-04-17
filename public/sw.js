@@ -75,6 +75,21 @@ self.addEventListener('fetch', (event) => {
       event.respondWith(
         fetch(request.clone()).catch(async (err) => {
           console.warn('[SW] Red caída. Guardando petición en IndexedDB para Background Sync...', err)
+
+          // DON'T queue favorites toggle — it's idempotent and would double-toggle.
+          // The frontend handles this optimistically and reconciles via fetchProfile on reconnect.
+          const isFavoritesToggle = request.url.includes('/api/users/me/favorites/')
+          if (isFavoritesToggle) {
+            console.log('[SW] Favoritos toggle detectado — se omite queue para evitar duplicados.')
+            return new Response(
+              JSON.stringify({
+                offline: true,
+                message: 'Favorito guardado localmente. Se sincronizará al reconectar.',
+              }),
+              { status: 202, headers: { 'Content-Type': 'application/json' } }
+            )
+          }
+
           try {
             const bodyText = await request.clone().text()
             let bodyData = null

@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../utils/api.js'
 import { connectSocket, getSocket } from '../utils/socket.js'
+import { on as busOn, off as busOff, emit as busEmit } from '../utils/eventBus.js'
 import TeamSelectModal from '../components/TeamSelectModal.vue'
 
 const router = useRouter()
@@ -67,6 +68,7 @@ async function sendRequest() {
     searchResult.value = null
     searchQuery.value = ''
     await fetchFriends()
+    busEmit('friends-changed')
   } catch (err) {
     actionMsg.value = err.response?.data?.error || 'Error al enviar solicitud.'
   }
@@ -78,6 +80,7 @@ async function acceptRequest(id) {
     actionMsg.value = '✅ ¡Solicitud aceptada!'
     setTimeout(() => (actionMsg.value = ''), 3000)
     await Promise.all([fetchFriends(), fetchBattles()])
+    busEmit('friends-changed')
   } catch (err) {
     actionMsg.value = err.response?.data?.error || 'Error al aceptar.'
   }
@@ -89,6 +92,7 @@ async function declineRequest(id) {
     actionMsg.value = '❌ Solicitud rechazada.'
     setTimeout(() => (actionMsg.value = ''), 3000)
     await fetchFriends()
+    busEmit('friends-changed')
   } catch (err) {
     actionMsg.value = err.response?.data?.error || 'Error al rechazar.'
   }
@@ -100,6 +104,7 @@ async function challengeBattle(friendId) {
     actionMsg.value = '⚔️ ¡Reto enviado!'
     setTimeout(() => (actionMsg.value = ''), 3000)
     await fetchBattles()
+    busEmit('battles-changed')
   } catch (err) {
     actionMsg.value = err.response?.data?.error || 'Error al retar.'
   }
@@ -120,6 +125,7 @@ async function acceptBattle(battleId) {
     selectedBattleId.value = battleId
     showTeamSelect.value = true
     await fetchBattles()
+    busEmit('battles-changed')
   } catch (err) {
     actionMsg.value = err.response?.data?.error || 'Error al aceptar.'
   }
@@ -129,6 +135,7 @@ async function declineBattle(battleId) {
   try {
     await api.post(`/api/battles/${battleId}/decline`)
     await fetchBattles()
+    busEmit('battles-changed')
   } catch (err) {
     actionMsg.value = err.response?.data?.error || 'Error al rechazar.'
   }
@@ -153,9 +160,21 @@ function navigateToBattle(battleId) {
   router.push(`/battle/${battleId}`)
 }
 
+// Bus event handlers
+function onFriendsChanged() {
+  fetchFriends()
+}
+function onBattlesChanged() {
+  fetchBattles()
+}
+
 onMounted(() => {
   fetchFriends()
   fetchBattles()
+
+  // Listen for cross-component updates
+  busOn('friends-changed', onFriendsChanged)
+  busOn('battles-changed', onBattlesChanged)
 
   // Connect socket and listen for real-time battle updates
   connectSocket()
@@ -168,6 +187,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  busOff('friends-changed', onFriendsChanged)
+  busOff('battles-changed', onBattlesChanged)
+
   const socket = getSocket()
   if (socket) {
     socket.off('battle-accepted')

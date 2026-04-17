@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/utils/api'
+import { emit as busEmit } from '@/utils/eventBus'
 
 const route = useRoute()
 const notifications = ref([])
@@ -65,6 +66,7 @@ async function acceptFriend(id) {
   try {
     await api.post(`/api/friends/${id}/accept`)
     await fetchPendingItems()
+    busEmit('friends-changed')
   } catch(e) { console.error(e) }
 }
 
@@ -72,6 +74,7 @@ async function declineFriend(id) {
   try {
     await api.post(`/api/friends/${id}/decline`)
     await fetchPendingItems()
+    busEmit('friends-changed')
   } catch(e) { console.error(e) }
 }
 
@@ -79,6 +82,7 @@ async function acceptBattle(id) {
   try {
     await api.post(`/api/battles/${id}/accept`)
     await fetchPendingItems()
+    busEmit('battles-changed')
   } catch(e) { console.error(e) }
 }
 
@@ -86,6 +90,7 @@ async function declineBattle(id) {
   try {
     await api.post(`/api/battles/${id}/decline`)
     await fetchPendingItems()
+    busEmit('battles-changed')
   } catch(e) { console.error(e) }
 }
 

@@ -213,9 +213,16 @@ onUnmounted(() => {
       </div>
 
       <!-- Pending Requests -->
-      <div v-if="pending.length" class="friends-section">
-        <h2>Solicitudes pendientes <span class="badge">{{ pending.length }}</span></h2>
-        <div class="friends-list">
+      <div class="friends-section">
+        <h2>Solicitudes pendientes <span class="badge" v-if="pending.length">{{ pending.length }}</span></h2>
+
+        <div v-if="loading" class="loading-state">Cargando...</div>
+
+        <div v-else-if="!pending.length" class="empty-state">
+          <p>No tienes solicitudes de amistad pendientes.</p>
+        </div>
+
+        <div v-else class="friends-list">
           <div v-for="f in pending" :key="f.id" class="friend-item pending">
             <div class="user-avatar small">{{ f.otherUser?.username?.charAt(0).toUpperCase() }}</div>
             <div class="user-info">
@@ -257,9 +264,16 @@ onUnmounted(() => {
       </div>
 
       <!-- Battle Challenges -->
-      <div class="friends-section" v-if="battles.length">
-        <h2>⚔️ Batallas <span class="badge">{{ battles.length }}</span></h2>
-        <div class="friends-list">
+      <div class="friends-section">
+        <h2>⚔️ Batallas <span class="badge" v-if="battles.length">{{ battles.length }}</span></h2>
+
+        <div v-if="loading" class="loading-state">Cargando...</div>
+
+        <div v-else-if="!battles.length" class="empty-state">
+          <p>No tienes batallas activas. ¡Reta a un amigo desde tu lista de amigos!</p>
+        </div>
+
+        <div v-else class="friends-list">
           <div v-for="b in battles" :key="b.id" class="friend-item battle-item"
             :class="'battle-' + b.status">
             <div class="user-avatar small battle-avatar">⚔</div>

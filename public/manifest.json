@@ -2,13 +2,16 @@
   "name": "PokePWA",
   "short_name": "PokeApp",
   "description": "Tu Pokédex offline — busca y colecciona Pokémon en cualquier momento.",
-  "start_url": "./index.html",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#1a0b2e",
   "theme_color": "#5d018f",
   "lang": "es",
-  "categories": ["games", "entertainment"],
+  "categories": [
+    "games",
+    "entertainment"
+  ],
   "icons": [
     {
       "src": "./icons/icon-72x72.png",
@@ -65,8 +68,13 @@
       "name": "Mi Pokédex",
       "short_name": "Pokédex",
       "description": "Acceder a mi Pokédex",
-      "url": "./index.html",
-      "icons": [{ "src": "./icons/icon-96x96.png", "sizes": "96x96" }]
+      "url": "/",
+      "icons": [
+        {
+          "src": "./icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ]
 }

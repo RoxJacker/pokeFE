@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import axios from 'axios'
 import LoadingSkeleton from '../components/LoadingSkeleton.vue'
@@ -35,6 +35,17 @@ async function loadFavorites() {
 onMounted(() => {
   loadFavorites()
 })
+
+watch(() => authStore.user?.favorites, (newFavs, oldFavs) => {
+  // Reload only if length changed or we detected a reference swap
+  if (!oldFavs || newFavs.length !== oldFavs.length) {
+    loadFavorites()
+  } else {
+    const newIds = newFavs.map(f => f.pokemonId).sort().join(',')
+    const oldIds = oldFavs.map(f => f.pokemonId).sort().join(',')
+    if (newIds !== oldIds) loadFavorites()
+  }
+}, { deep: true })
 
 const padId = (id) => String(id).padStart(3, '0')
 

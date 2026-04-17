@@ -168,7 +168,14 @@ self.addEventListener('sync', (event) => {
   }
 })
 
+let isSyncing = false
+
 async function syncFailedRequests() {
+  if (isSyncing) {
+    console.log('[SW] Sincronización ya está en curso, ignorando intento paralelo...')
+    return
+  }
+  isSyncing = true
   try {
     const db = await openSyncDB()
     const requests = await getAllPendingRequests(db)
@@ -203,6 +210,8 @@ async function syncFailedRequests() {
   } catch (err) {
     console.error('[SW] Error en syncFailedRequests:', err)
     throw err // Propagar para que Background Sync reintente
+  } finally {
+    isSyncing = false
   }
 }
 

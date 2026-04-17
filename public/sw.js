@@ -76,20 +76,6 @@ self.addEventListener('fetch', (event) => {
         fetch(request.clone()).catch(async (err) => {
           console.warn('[SW] Red caída. Guardando petición en IndexedDB para Background Sync...', err)
 
-          // DON'T queue favorites toggle — it's idempotent and would double-toggle.
-          // The frontend handles this optimistically and reconciles via fetchProfile on reconnect.
-          const isFavoritesToggle = request.url.includes('/api/users/me/favorites/')
-          if (isFavoritesToggle) {
-            console.log('[SW] Favoritos toggle detectado — se omite queue para evitar duplicados.')
-            return new Response(
-              JSON.stringify({
-                offline: true,
-                message: 'Favorito guardado localmente. Se sincronizará al reconectar.',
-              }),
-              { status: 202, headers: { 'Content-Type': 'application/json' } }
-            )
-          }
-
           try {
             const bodyText = await request.clone().text()
             let bodyData = null
@@ -208,6 +194,12 @@ async function syncFailedRequests() {
         // Dejar en IDB para el próximo intento de sync
       }
     }
+
+    // Notify all clients that sync is done so they can refresh data
+    const clients = await self.clients.matchAll({ type: 'window' })
+    clients.forEach(client => client.postMessage({ type: 'SYNC_COMPLETE' }))
+    console.log('[SW] SYNC_COMPLETE enviado a', clients.length, 'cliente(s)')
+
   } catch (err) {
     console.error('[SW] Error en syncFailedRequests:', err)
     throw err // Propagar para que Background Sync reintente

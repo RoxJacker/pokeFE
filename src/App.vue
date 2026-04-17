@@ -24,11 +24,15 @@ function updateOnlineStatus() {
       if ('sync' in sw) sw.sync.register('sync-pokemon').catch(() => {})
       if (sw.active) sw.active.postMessage('FORCE_SYNC')
     })
-    // After SW syncs queued requests, re-fetch profile so UI reflects server state
+  }
+}
+
+// Listen for SYNC_COMPLETE from SW — fetch profile ONLY after all queued requests are replayed
+function onSWMessage(event) {
+  if (event.data?.type === 'SYNC_COMPLETE') {
+    console.log('[App] SYNC_COMPLETE recibido — refrescando perfil...')
     if (authStore.isLoggedIn) {
-      setTimeout(() => {
-        authStore.fetchProfile()
-      }, 2000)
+      authStore.fetchProfile()
     }
   }
 }
@@ -64,12 +68,20 @@ onMounted(() => {
   window.addEventListener('online', updateOnlineStatus)
   window.addEventListener('offline', updateOnlineStatus)
   
+  // Listen for SW sync completion messages
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', onSWMessage)
+  }
+  
   // Try to setup push notifications on app startup if logged in
   setupPushIfNeeded()
 })
 onUnmounted(() => {
   window.removeEventListener('online', updateOnlineStatus)
   window.removeEventListener('offline', updateOnlineStatus)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.removeEventListener('message', onSWMessage)
+  }
 })
 </script>
 

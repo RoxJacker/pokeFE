@@ -73,13 +73,25 @@ async function sendRequest() {
 }
 
 async function acceptRequest(id) {
-  await api.post(`/api/friends/${id}/accept`)
-  await fetchFriends()
+  try {
+    await api.post(`/api/friends/${id}/accept`)
+    actionMsg.value = '✅ ¡Solicitud aceptada!'
+    setTimeout(() => (actionMsg.value = ''), 3000)
+    await Promise.all([fetchFriends(), fetchBattles()])
+  } catch (err) {
+    actionMsg.value = err.response?.data?.error || 'Error al aceptar.'
+  }
 }
 
 async function declineRequest(id) {
-  await api.post(`/api/friends/${id}/decline`)
-  await fetchFriends()
+  try {
+    await api.post(`/api/friends/${id}/decline`)
+    actionMsg.value = '❌ Solicitud rechazada.'
+    setTimeout(() => (actionMsg.value = ''), 3000)
+    await fetchFriends()
+  } catch (err) {
+    actionMsg.value = err.response?.data?.error || 'Error al rechazar.'
+  }
 }
 
 async function challengeBattle(friendId) {

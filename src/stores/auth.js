@@ -70,23 +70,27 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function toggleFavorite(pokemonId) {
     // Optimistic local update FIRST
-    const existing = user.value.favorites || []
-    const idx = existing.findIndex(f => f.pokemonId === pokemonId)
+    if (!user.value.favorites) user.value.favorites = []
+    const idx = user.value.favorites.findIndex(f => f.pokemonId === pokemonId)
+    const wasAdding = idx === -1
     if (idx !== -1) {
       user.value.favorites.splice(idx, 1)
     } else {
       user.value.favorites.push({ pokemonId, nickname: '', notes: '' })
     }
-    localStorage.setItem('pokepwa_user', JSON.stringify(user.value))
+    _persist(user.value)
 
     try {
       const { data } = await api.post(`/api/users/me/favorites/${pokemonId}`)
-      // If we got the real server response, use it as source of truth
-      if (data.favorites) {
-        user.value.favorites = data.favorites
-        localStorage.setItem('pokepwa_user', JSON.stringify(user.value))
+      if (data.offline) {
+        // SW queued it — keep optimistic state, mark for later sync
+        return user.value.favorites
       }
-      // If data.offline === true (SW queued it), keep the optimistic state
+      if (data.favorites) {
+        // Server responded — use as source of truth
+        user.value.favorites = data.favorites
+        _persist(user.value)
+      }
       return user.value.favorites
     } catch {
       // Network error not caught by SW — keep the optimistic state
